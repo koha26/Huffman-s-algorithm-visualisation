@@ -4,7 +4,7 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, UnitHuff, Vcl.Menus;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, UnitHuff, Vcl.Menus, Math;
 
 type
   TForm1 = class(TForm)
@@ -43,6 +43,39 @@ var
 implementation
 
 {$R *.dfm}
+procedure DrawArrowHead(Canvas: TCanvas; X,Y: Integer; Angle,LW: Extended);
+var
+  A1,A2: Extended;
+  Arrow: array[0..3] of TPoint;
+  OldWidth: Integer;
+const
+  Beta=0.322;
+  LineLen=4.74;
+  CentLen=3;
+begin
+  Angle:=Pi+Angle;
+  Arrow[0]:=Point(X,Y);
+  A1:=Angle-Beta;
+  A2:=Angle+Beta;
+  Arrow[1]:=Point(X+Round(LineLen*LW*Cos(A1)),Y-Round(LineLen*LW*Sin(A1)));
+  Arrow[2]:=Point(X+Round(CentLen*LW*Cos(Angle)),Y-Round(CentLen*LW*Sin(Angle)));
+  Arrow[3]:=Point(X+Round(LineLen*LW*Cos(A2)),Y-Round(LineLen*LW*Sin(A2)));
+  OldWidth:=Canvas.Pen.Width;
+  Canvas.Pen.Width:=1;
+  Canvas.Polygon(Arrow);
+  Canvas.Pen.Width:=OldWidth
+end;
+
+procedure DrawArrow(Canvas: TCanvas; X1,Y1,X2,Y2: Integer; LW: Extended);
+var
+  Angle: Extended;
+begin
+  Angle:=ArcTan2(Y1-Y2,X2-X1);
+  Canvas.MoveTo(X1,Y1);
+  Canvas.LineTo(X2-Round(2*LW*Cos(Angle)),Y2+Round(2*LW*Sin(Angle)));
+  DrawArrowHead(Canvas,X2,Y2,Angle,LW);
+end;
+
 procedure CreateEdits(offset,n: integer);
 var edit: tedit;
 begin
@@ -89,14 +122,25 @@ begin
 end;
 
 procedure Huffman1(var huff:Tah);
-var tmp,p:pnode; size:integer; edit: tedit;
+var tmp,p:pnode; size,i,j:integer; edit: tedit;
 begin
+  Form1.Canvas.Pen.Color:=clBlack;
+  Form1.Canvas.Pen.Width:=2;
+  Form1.Canvas.Brush.Color:=clBlack;
   size:=length(huff)-1;
   while size<>0 do
   begin
      //FastSorting(huff,0,size);
      BubleSorting(huff,size);
+     DrawArrow(Form1.Canvas,huff[0].edit.Left+230,huff[0].edit.Top,300,200,4);
      setChanges(size);
+     if Application.MessageBox('Продолжить?', 'Вопрос', MB_OKCANCEL) = ID_OK then
+     begin
+      {for i:=230 to 750 do
+        for j:=45 to 200 do
+          if Form1.Canvas.pixels[i,j]=clBlack then
+            Form1.Canvas.Pixels[i,j]:=clBtnFace; }
+     end;
      New(p);
      //p^.left:=huff[size-1];
      //p^.right:=huff[size];
@@ -120,10 +164,13 @@ begin
      huff[size]:=p;
   end;
   setChanges(size);
+  DrawArrow(Form1.Canvas,huff[0].edit.Left+230,huff[0].edit.Top,300,200,4);
+  Form1.Canvas.Brush.Color := clBtnFace;
+  Form1.Canvas.FillRect(Form1.Canvas.ClipRect);
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
-var text:String; ind,i:integer; stackind,ncode:integer; pt:pnode;
+var text:String; ind,i,j:integer; stackind,ncode:integer; pt:pnode; tmp:char;
 begin
   text:=Edit1.text;
   UnitHuff.GenarateFreq(huff,text,ind);
@@ -141,16 +188,23 @@ begin
   pt:=huff[0];
   Obhod(pt,mas,code,stackind,ncode);
   for i := 0 to ncode-1 do
+  begin
+    for j := 0  to ncode-1 do
     begin
-      StringGrid1.Cells[0,i+1]:=code[i].letter;
-      StringGrid1.Cells[2,i+1]:=code[i].code;
+       if StringGrid1.Cells[0,j+1]=code[i].letter then
+       begin
+          StringGrid1.Cells[2,j+1]:=code[i].code;
+          break;
+       end;
     end;
+  end;
 end;
 
 procedure TForm1.Button2Click(Sender: TObject);
 begin
-  Form1.Color:= clGreen;
-  fOpenClick(self);       //.chm -справка
+  //Form1.Color:= clGreen;
+  //fOpenClick(self);       //.chm -справка
+
 end;
 
 procedure TForm1.fOpenClick(Sender: TObject);
