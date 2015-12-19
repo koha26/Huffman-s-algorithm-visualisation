@@ -4,7 +4,8 @@ interface
 
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
-  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, UnitHuff, Vcl.Menus, Math;
+  Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, UnitHuff, Vcl.Menus, Math,
+  Vcl.ExtCtrls, Vcl.Mask;
 
 type
   TForm1 = class(TForm)
@@ -25,6 +26,9 @@ type
     Button2: TButton;
     Memo1: TMemo;
     Button3: TButton;
+    Timer1: TTimer;
+    Edit50: TEdit;
+    Edit51: TEdit;
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure fOpenClick(Sender: TObject);
@@ -41,7 +45,7 @@ var
   Form1: TForm1; huff:Tah; mas:Tarr; code:Tcode;
   fFilePath:String;
   offset:integer;
-  flag,finished:boolean;
+  flag,finished,sorted:boolean;
   size:integer;
   memoRowInd:integer;
 implementation
@@ -72,6 +76,10 @@ begin
      '2': begin
           Form1.Memo1.Lines.Add('- Берем последние 2 символа из массива и объединяем их в один узел. ');
           Form1.Memo1.Lines.Add('- Сложим их частоты. ');
+          Form1.Memo1.Lines.Add(' ');
+          end;
+     't': begin
+          Form1.Memo1.Lines.Add('- Cвяжем два последних элемента - получится итоговое дерево');
           Form1.Memo1.Lines.Add(' ');
           end;
    end;
@@ -108,6 +116,67 @@ begin
   Canvas.MoveTo(X1,Y1);
   Canvas.LineTo(X2-Round(2*LW*Cos(Angle)),Y2+Round(2*LW*Sin(Angle)));
   DrawArrowHead(Canvas,X2,Y2,Angle,LW);
+end;
+
+procedure FindCodes(huff:pnode; var mas:Tarr; var code:Tcode; var ind:integer; var n:integer );
+var pt:pnode; i:integer;  left_x1,top_y1,left_x2,top_y2:integer; text:string;
+begin                                  //ind -> stack; n -> -//-
+   pt:=huff;                           //mas -> stack; code -> tabble with codes
+   if pt^.left<>nil then
+   begin
+     left_x1:=pt^.edit.Left+(pt^.edit.Width div 2);
+     top_y1:=pt^.edit.Top+pt^.edit.Height;
+     left_x2:=pt^.left^.edit.Left+(pt^.left^.edit.Width div 2);
+     top_y2:=pt^.left^.edit.Top;
+     Form1.Canvas.Pen.Color:=clGreen;
+     Form1.Canvas.Pen.Width:=2;
+     Form1.Canvas.Brush.Color:=clGreen;
+     DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
+     pushMas(mas,ind,'0');
+     Form1.Edit50.Text:=Form1.Edit50.Text+'0';
+     sleep(1000);
+     FindCodes(pt^.left,mas,code,ind,n);
+   end;
+   if pt^.right<>nil then
+   begin
+     left_x1:=pt^.edit.Left+(pt^.edit.Width div 2);
+     top_y1:=pt^.edit.Top+pt^.edit.Height;
+     left_x2:=pt^.right^.edit.Left+(pt^.right^.edit.Width div 2);
+     top_y2:=pt^.right^.edit.Top;
+     Form1.Canvas.Pen.Color:=clGreen;
+     Form1.Canvas.Pen.Width:=2;
+     Form1.Canvas.Brush.Color:=clGreen;
+     DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
+     pushMas(mas,ind,'1');
+     Form1.Edit50.Text:=Form1.Edit50.Text+'1';
+     sleep(1000);
+     FindCodes(pt^.right,mas,code,ind,n);
+   end;
+   if pt^.letter<>'' then
+   begin
+      if length(code)=0 then
+        SetLength(code,3);
+      if n<length(code) then
+      begin
+        code[n].letter:=pt.letter;
+        for i := 0 to ind-1 do
+          code[n].code:=code[n].code+mas[i];
+        inc(n);
+      end
+      else
+        begin
+          SetLength(code,length(code)*2);
+          code[n].letter:=pt.letter;
+          for i := 0 to ind-1 do
+            code[n].code:=code[n].code+mas[i];
+          inc(n);
+        end;
+   end;
+   popMas(mas,ind);
+   //text:=Form1.Edit50.Text;
+   //SetLength(text,length(text)-1);
+   //Form1.Edit50.Text:=text;
+   //delete(Form1.MaskEdit1.Text,length(Form1.MaskEdit1.Text)-1,1);
 end;
 
 procedure CreateEdits(offset,n: integer);
@@ -175,12 +244,19 @@ begin
 end;
 
 procedure TForm1.Button1Click(Sender: TObject);
-var text:String; ind,i,j:integer; stackind,ncode:integer; pt:pnode; tmp:char;
+var text:String; ind,i,j,stackind,ncode,symbols:integer; pt:pnode; tmp:char;
 begin
-  DescriptionOfActions('n');
   text:=Edit1.text;
-  DescriptionOfActions('f');
   UnitHuff.GenarateFreq(huff,text,ind);
+  if length(huff)>17 then
+  begin
+    Memo1.Lines.Add('ВНИМАНИЕ: Ваш текст содержил больше 17 различных символов. Повторите попытку еще.');
+    Edit1.text:='';
+    exit;
+  end;
+  DescriptionOfActions('n');
+  DescriptionOfActions('f');
+  //UnitHuff.GenarateFreq(huff,text,ind);
   StringGrid1.RowCount:=length(huff)+1;
   for i := 0 to length(huff)-1 do
   begin
@@ -190,15 +266,11 @@ begin
     //offset:=i+2;
   end;
   size:=length(huff)-1;
-  {DescriptionOfActions('m');
-  BubleSorting(huff,size);
-  DescriptionOfActions('s');
-  setChanges(size);    }
   Form1.Button2.SetFocus;
 end;
 
 procedure Huffman2(var huff:Tah; var size:integer);
-var tmp,p:pnode; i,j:integer; edit: tedit; stackind,ncode:integer; pt:pnode;
+var tmp,p:pnode; i,j:integer; edit: tedit; stackind,ncode:integer; pt:pnode; text:String;
 begin
   if (size=length(huff)-1) and (flag=false)then
   begin
@@ -209,16 +281,24 @@ begin
      end;
      size:=length(huff)-1;
      DescriptionOfActions('m');
+     //BubleSorting(huff,size);
+     //DescriptionOfActions('s');
+     //setChanges(size);
+     flag:=true;
+     exit;
+  end;
+  if (size<>0) and (sorted=false) then
+  begin
      BubleSorting(huff,size);
      DescriptionOfActions('s');
      setChanges(size);
-     flag:=true;
+     sorted:=true;
      exit;
   end;
   if size<>0 then
   begin
-     BubleSorting(huff,size);
-     DescriptionOfActions('s');
+     //BubleSorting(huff,size);
+     //DescriptionOfActions('s');
      //setChanges(size);
      New(p);
      p^.edit:= TEdit.Create(form1);
@@ -229,8 +309,11 @@ begin
      p^.edit.ReadOnly:=true;
      p^.edit.Width := huff[size-1]^.edit.Width;
      p^.edit.Name := 'Edit'+inttostr(offset+1);
-     DescriptionOfActions('2');
-     p^.edit.text := IntToStr(huff[size-1]^.freq+huff[size]^.freq);
+     Form1.Memo1.Lines.Add('- Берем последние 2 элемента (узла) из массива и объединяем их в один узел. ');
+     Form1.Memo1.Lines.Add('  Сложим их частоты. Получилось '+IntToStr(huff[size-1].freq+huff[size].freq));
+     Form1.Memo1.Lines.Add(' ');
+     p^.edit.Text:=IntToStr(huff[size-1]^.freq+huff[size]^.freq);
+     //p^.edit.text := IntToStr(huff[size-1]^.freq+huff[size]^.freq);
      //p^.edit.text := huff[size-1]^.edit.text+huff[size]^.edit.text;
      p^.freq:=huff[size-1]^.freq+huff[size]^.freq;
      p^.left:=huff[size-1];
@@ -238,7 +321,15 @@ begin
      dec(size);
      inc(offset);
      huff[size]:=p;
+     if size=0 then
+     begin
+        DescriptionOfActions('t');
+        Form1.Memo1.Lines.Add('- Теперь, чтобы получить код для каждого символа, надо просто пройтись по дереву, и для каждого перехода добавлять 0, если мы идём влево (красная стрелка), и 1 — если направо (синяя стрелка)');
+        Form1.Memo1.Lines.Add(' ');
+        huff[0].edit.text:='['+IntToStr(huff[0]^.freq)+']';
+     end;
      setChanges(size);
+     sorted:=false;
   end
   else
   begin
@@ -246,7 +337,7 @@ begin
      stackind:=0;   //stack index
      ncode:=0;      //codes index
      pt:=huff[0];
-     Obhod(pt,mas,code,stackind,ncode);
+     FindCodes(pt,mas,code,stackind,ncode);
      for i := 0 to ncode-1 do
      begin
         for j := 0  to ncode-1 do
@@ -324,8 +415,6 @@ begin
   StringGrid1.Width:=StringGrid1.ColWidths[0]+StringGrid1.ColWidths[1]+StringGrid1.ColWidths[2]+8;
   Memo1.ReadOnly:=true;
 end;
-
-
 
 procedure Save;
 var i:integer; f:text;
