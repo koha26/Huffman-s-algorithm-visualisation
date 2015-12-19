@@ -40,6 +40,7 @@ var
   fFilePath:String;
   offset:integer;
   flag:boolean;
+  size:integer;
 implementation
 
 {$R *.dfm}
@@ -182,8 +183,13 @@ begin
     CreateEdits(i+2,length(huff));
     offset:=i+2;
   end;
-  Huffman1(huff);
-  stackind:=0;   //stack index
+  size:=length(huff)-1;
+  BubleSorting(huff,size);
+     //DrawArrow(Form1.Canvas,huff[0].edit.Left+230,huff[0].edit.Top,300,200,4);
+  setChanges(size);
+  Form1.Button2.SetFocus;
+  //Huffman1(huff);
+  {stackind:=0;   //stack index
   ncode:=0;      //codes index
   pt:=huff[0];
   Obhod(pt,mas,code,stackind,ncode);
@@ -197,14 +203,46 @@ begin
           break;
        end;
     end;
+  end;}
+end;
+
+procedure Huffman2(var huff:Tah; var size:integer);
+var tmp,p:pnode; i,j:integer; edit: tedit;
+begin
+   if size<>0 then
+  begin
+     BubleSorting(huff,size);
+     //DrawArrow(Form1.Canvas,huff[0].edit.Left+230,huff[0].edit.Top,300,200,4);
+     //setChanges(size);
+     New(p);
+     p^.edit:= TEdit.Create(form1);
+     p^.edit.Parent := Form1;
+     p^.edit.Left:=huff[size-1]^.edit.Left;
+     p^.edit.Top := 45;
+     p^.edit.Visible := true;
+     p^.edit.Width := huff[size-1]^.edit.Width;
+     p^.edit.Name := 'Edit'+inttostr(offset+1);
+     p^.edit.text := huff[size-1]^.edit.text+huff[size]^.edit.text;
+     p^.freq:=huff[size-1]^.freq+huff[size]^.freq;
+     p^.left:=huff[size-1];
+     p^.right:=huff[size];
+     dec(size);
+     inc(offset);
+     huff[size]:=p;
+     setChanges(size);
+  end
+  else
+  begin
+     setChanges(size);
   end;
 end;
 
-procedure TForm1.Button2Click(Sender: TObject);
+procedure TForm1.Button2Click(Sender: TObject);// var huff:Tah; var size:integer);
+var tmp,p:pnode; i,j:integer; edit: tedit;
 begin
   //Form1.Color:= clGreen;
   //fOpenClick(self);       //.chm -справка
-
+  Huffman2(huff,size);
 end;
 
 procedure TForm1.fOpenClick(Sender: TObject);
