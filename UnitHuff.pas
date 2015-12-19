@@ -105,7 +105,7 @@ begin
 end;
 
 procedure FastSorting(var huff:Tah; l,r: integer);
-var i,j,x,y: integer; tmp:char; tml,tmr:pnode;
+var i,j,x,y: integer; tmp:char; tml,tmr:pnode; tme:Tedit;
 begin
     i:=l;
     j:=r;
@@ -123,14 +123,17 @@ begin
           tmp:=huff[i]^.letter;
           tml:=huff[i]^.left;
           tmr:=huff[i]^.right;
+          tme:=huff[i]^.edit;
           huff[i]^.freq:=huff[j]^.freq;
           huff[i]^.letter:=huff[j]^.letter;
           huff[i]^.left:=huff[j]^.left;
           huff[i]^.right:=huff[j]^.right;
+          huff[i]^.edit:=huff[j]^.edit;
           huff[j]^.freq:=y;
           huff[j]^.letter:=tmp;
           huff[j]^.left:=tml;
           huff[j]^.right:=tmr;
+          huff[j]^.edit:=tme;
         end;
         i:=i+1;
         j:=j-1;
