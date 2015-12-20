@@ -29,12 +29,15 @@ type
     Timer1: TTimer;
     Edit50: TEdit;
     Edit51: TEdit;
+    Label4: TLabel;
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure fOpenClick(Sender: TObject);
     procedure fSaveClick(Sender: TObject);
     procedure Button2Click(Sender: TObject);
     procedure Button3Click(Sender: TObject);
+    procedure fNewClick(Sender: TObject);
+    procedure N6Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -65,7 +68,6 @@ begin
           Form1.Memo1.Lines.Add(' ');
           end;
      'n': begin
-          Form1.Memo1.Lines.Add(' ');
           Form1.Memo1.Lines.Add('ПОШАГОВОЕ ОПИСАНИЕ ДЕЙСТВИЙ');
           Form1.Memo1.Lines.Add(' ');
           end;
@@ -118,6 +120,44 @@ begin
   DrawArrowHead(Canvas,X2,Y2,Angle,LW);
 end;
 
+function FindLetter(letter:char):integer;
+var i,j:integer;
+begin
+   for i := 1 to Form1.StringGrid1.RowCount-1 do
+   begin
+      if Form1.StringGrid1.Cells[0,i]=letter then
+      begin
+          result:=i;
+          exit;
+      end;
+   end;
+   result:=1;
+end;
+
+procedure pushMas(var mas:Tarr; var n:integer; x:char);
+begin
+   if length(mas)=0 then
+        SetLength(mas,3);
+   if n<length(mas) then
+   begin
+     mas[n]:=x;
+     inc(n);
+   end
+   else
+      begin
+        SetLength(mas,length(mas)*2);
+        mas[n]:=x;
+        inc(n);
+      end;
+end;
+
+procedure popMas (var mas:Tarr; var n:integer);
+var text:String;
+begin
+  mas[n]:=' ';
+  dec(n);
+end;
+
 procedure FindCodes(huff:pnode; var mas:Tarr; var code:Tcode; var ind:integer; var n:integer );
 var pt:pnode; i:integer;  left_x1,top_y1,left_x2,top_y2:integer; text:string;
 begin                                  //ind -> stack; n -> -//-
@@ -131,10 +171,12 @@ begin                                  //ind -> stack; n -> -//-
      Form1.Canvas.Pen.Color:=clGreen;
      Form1.Canvas.Pen.Width:=2;
      Form1.Canvas.Brush.Color:=clGreen;
+     sleep(1800);
      DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
      pushMas(mas,ind,'0');
      Form1.Edit50.Text:=Form1.Edit50.Text+'0';
-     sleep(1000);
+     Form1.Edit50.Repaint;
+     //sleep(1800);
      FindCodes(pt^.left,mas,code,ind,n);
    end;
    if pt^.right<>nil then
@@ -146,10 +188,12 @@ begin                                  //ind -> stack; n -> -//-
      Form1.Canvas.Pen.Color:=clGreen;
      Form1.Canvas.Pen.Width:=2;
      Form1.Canvas.Brush.Color:=clGreen;
+     sleep(1800);
      DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
      pushMas(mas,ind,'1');
      Form1.Edit50.Text:=Form1.Edit50.Text+'1';
-     sleep(1000);
+     Form1.Edit50.Repaint;
+     //sleep(1800);
      FindCodes(pt^.right,mas,code,ind,n);
    end;
    if pt^.letter<>'' then
@@ -159,24 +203,33 @@ begin                                  //ind -> stack; n -> -//-
       if n<length(code) then
       begin
         code[n].letter:=pt.letter;
+        Form1.Edit51.Text:=code[n].letter;
+        Form1.Edit51.Repaint;
         for i := 0 to ind-1 do
           code[n].code:=code[n].code+mas[i];
+        Form1.StringGrid1.Cells[2,FindLetter(code[n].letter)]:=code[n].code;
+        Form1.StringGrid1.Repaint;
+        Form1.Memo1.Lines.Add('- Cимволу "'+code[n].letter+'" соотвествует код '+code[n].code);
         inc(n);
       end
       else
         begin
           SetLength(code,length(code)*2);
           code[n].letter:=pt.letter;
+          Form1.Edit51.Text:=code[n].letter;
+          Form1.Edit51.Repaint;
           for i := 0 to ind-1 do
             code[n].code:=code[n].code+mas[i];
+          Form1.StringGrid1.Cells[2,FindLetter(code[n].letter)]:=code[n].code;
+          Form1.StringGrid1.Repaint;
+          Form1.Memo1.Lines.Add('- Cимволу "'+code[n].letter+'" соотвествует код '+code[n].code);
           inc(n);
         end;
    end;
    popMas(mas,ind);
-   //text:=Form1.Edit50.Text;
-   //SetLength(text,length(text)-1);
-   //Form1.Edit50.Text:=text;
-   //delete(Form1.MaskEdit1.Text,length(Form1.MaskEdit1.Text)-1,1);
+   text:=Form1.Edit50.Text;
+   SetLength(text,length(text)-1);
+   Form1.Edit50.Text:=text;
 end;
 
 procedure CreateEdits(offset,n: integer);
@@ -255,18 +308,17 @@ begin
     exit;
   end;
   DescriptionOfActions('n');
+  Form1.Memo1.Lines.Add('ПОДСКАЗКА: Для подальшего пошагового управления нажимайте кнопку "Дальше"');
   DescriptionOfActions('f');
-  //UnitHuff.GenarateFreq(huff,text,ind);
   StringGrid1.RowCount:=length(huff)+1;
   for i := 0 to length(huff)-1 do
   begin
     StringGrid1.Cells[0,i+1]:=huff[i].letter;
     StringGrid1.Cells[1,i+1]:=IntToStr(huff[i].freq);
-    //CreateEdits(i+2,length(huff));
-    //offset:=i+2;
   end;
   size:=length(huff)-1;
-  Form1.Button2.SetFocus;
+  Form1.Button1.Enabled:=false;
+  Form1.Button2.Enabled:=true;
 end;
 
 procedure Huffman2(var huff:Tah; var size:integer);
@@ -281,9 +333,6 @@ begin
      end;
      size:=length(huff)-1;
      DescriptionOfActions('m');
-     //BubleSorting(huff,size);
-     //DescriptionOfActions('s');
-     //setChanges(size);
      flag:=true;
      exit;
   end;
@@ -325,6 +374,8 @@ begin
      begin
         DescriptionOfActions('t');
         Form1.Memo1.Lines.Add('- Теперь, чтобы получить код для каждого символа, надо просто пройтись по дереву, и для каждого перехода добавлять 0, если мы идём влево (красная стрелка), и 1 — если направо (синяя стрелка)');
+        Form1.Memo1.Lines.Add('Загоревшаяся зеленым цветом стрелка показывает продвижение по дереву.');
+        Form1.Memo1.Lines.Add('Слева синхронизировано с прохождением по дереву показано добавление 0 или 1.');
         Form1.Memo1.Lines.Add(' ');
         huff[0].edit.text:='['+IntToStr(huff[0]^.freq)+']';
      end;
@@ -337,7 +388,10 @@ begin
      stackind:=0;   //stack index
      ncode:=0;      //codes index
      pt:=huff[0];
+     DrawArrow(Form1.Canvas,143,380,159,380,2);
      FindCodes(pt,mas,code,stackind,ncode);
+     sleep(500);
+     Form1.Edit51.Text:='';
      for i := 0 to ncode-1 do
      begin
         for j := 0  to ncode-1 do
@@ -349,6 +403,8 @@ begin
           end;
         end;
      end;
+     Form1.Memo1.Lines.Add(' ');
+     Form1.Memo1.Lines.Add('Поздравляю! Код Хаффмана создан. Все данные можете увидеть в таблице.');
      Form1.Button2.Default:=false;
      Form1.Edit1.SetFocus;
      Form1.Button2.Enabled:=false;
@@ -368,10 +424,10 @@ var tmp,i,j:integer;
 begin
   if finished then
   begin
-    tmp:=MessageBox(Handle,'Do you want to save this result to *.txt?','SaveDialog',MB_YESNOCANCEL+MB_ICONQUESTION);
+    tmp:=MessageBox(Handle,'Хотите ли вы сохранить результат в формате *.txt?','SaveDialog',MB_YESNOCANCEL+MB_ICONQUESTION);
     case tmp of
       id_yes: begin
-                fOpenClick(self);
+                fSaveClick(self);
               end;
       id_cancel: exit;
     end;
@@ -382,14 +438,49 @@ begin
   Form1.Canvas.Brush.Color := clBtnFace;
   Form1.Canvas.FillRect(Form1.Canvas.ClipRect);
   Edit1.Text:='';
+  Edit50.Text:='';
+  Edit51.Text:='';
+  Form1.Button1.Enabled:=true;
   flag:=false;
   finished:=false;
-  for i := 1 to StringGrid1.RowCount do
+  huff:=nil;
+  code:=nil;
+  for i := 1 to StringGrid1.RowCount-1 do
   begin
     Form1.StringGrid1.Cells[0,i]:='';
     Form1.StringGrid1.Cells[1,i]:='';
     Form1.StringGrid1.Cells[2,i]:='';
   end;
+end;
+
+procedure TForm1.fNewClick(Sender: TObject);
+var tmp,i,j:integer;
+begin
+   tmp:=MessageBox(Handle,'Вы действительно хотите создать новые коды Хаффмана','New...',MB_YESNO+MB_ICONQUESTION);
+    case tmp of
+      id_yes: begin
+                for i:=2 to offset do
+                   (form1.FindComponent('Edit'+inttostr(i)) as Tedit).Destroy;
+                Memo1.Lines.Clear;
+                Form1.Canvas.Brush.Color := clBtnFace;
+                Form1.Canvas.FillRect(Form1.Canvas.ClipRect);
+                Edit1.Text:='';
+                Edit50.Text:='';
+                Edit51.Text:='';
+                Form1.Button1.Enabled:=true;
+                flag:=false;
+                finished:=false;
+                huff:=nil;
+                code:=nil;
+                for i := 1 to StringGrid1.RowCount-1 do
+                begin
+                  Form1.StringGrid1.Cells[0,i]:='';
+                  Form1.StringGrid1.Cells[1,i]:='';
+                  Form1.StringGrid1.Cells[2,i]:='';
+                end;
+              end;
+      id_no: exit;
+    end;
 end;
 
 procedure TForm1.fOpenClick(Sender: TObject);
@@ -414,6 +505,7 @@ begin
   StringGrid1.ColWidths[0]:=Canvas.TextWidth(StringGrid1.Cells[0,0])+10;
   StringGrid1.Width:=StringGrid1.ColWidths[0]+StringGrid1.ColWidths[1]+StringGrid1.ColWidths[2]+8;
   Memo1.ReadOnly:=true;
+  Form1.Button2.Enabled:=false;
 end;
 
 procedure Save;
@@ -423,7 +515,7 @@ begin
   Rewrite(f);
   for i := 1 to Form1.StringGrid1.RowCount do
   begin
-    writeln(f,Form1.StringGrid1.Cells[0,i],' ',Form1.StringGrid1.Cells[1,i]);
+    writeln(f,Form1.StringGrid1.Cells[0,i],' ',Form1.StringGrid1.Cells[1,i],' ',Form1.StringGrid1.Cells[2,i]);
   end;
   CloseFile(f);
 end;
@@ -436,6 +528,11 @@ begin
          fFilePath:=SaveDialog1.FileName;
          Save;
      end;
+end;
+
+procedure TForm1.N6Click(Sender: TObject);
+begin
+    Form1.Close;
 end;
 
 end.
