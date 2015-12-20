@@ -9,14 +9,14 @@ uses
 type pnode=^node;
       node=record
         freq:integer;
-        letter:char;
+        letter:String;
         left:pnode;
         right:pnode;
         edit:TEdit;
       end;
 
     nodeCode=record
-      letter:char;
+      letter:String;
       code:string[40];
     end;
 
@@ -105,7 +105,7 @@ begin
 end;
 
 procedure FastSorting(var huff:Tah; l,r: integer);
-var i,j,x,y: integer; tmp:char; tml,tmr:pnode; tme:Tedit;
+var i,j,x,y: integer; tmp:String; tml,tmr:pnode; tme:Tedit;
 begin
     i:=l;
     j:=r;
@@ -144,7 +144,7 @@ begin
   end;
 
 procedure FastSortingCodes(var code:Tcode; l,r: integer);
-var x,tmp:char; i,j:integer; s:string;
+var x,tmp:String; i,j:integer; s:string;
 begin
     i:=l;
     j:=r;
@@ -174,7 +174,7 @@ begin
   end;
 
 procedure BubleSorting(var huff:Tah;r:integer);
-var i,j,y:integer;  tmp:char; tml,tmr:pnode; tme:Tedit;
+var i,j,y:integer;  tmp:String; tml,tmr:pnode; tme:Tedit;
 begin
    for i := r-1 downto 0 do
         for j := 0 to i do

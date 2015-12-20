@@ -29,7 +29,10 @@ type
     Timer1: TTimer;
     Edit50: TEdit;
     Edit51: TEdit;
-    Label4: TLabel;
+    StaticText1: TStaticText;
+    StaticText2: TStaticText;
+    StaticText3: TStaticText;
+    StringGrid2: TStringGrid;
     procedure Button1Click(Sender: TObject);
     procedure FormCreate(Sender: TObject);
     procedure fOpenClick(Sender: TObject);
@@ -54,6 +57,16 @@ var
 implementation
 
 {$R *.dfm}
+
+procedure Pause(col:integer);
+var wtim:ttime;
+begin
+    wtim:=encodetime(0,0,col,0)+time;
+    repeat
+    application.processmessages;
+    sleep(10);
+    until time>=wtim;
+end;
 
 procedure DescriptionOfActions(c:char);
 var i,j:integer;
@@ -120,7 +133,7 @@ begin
   DrawArrowHead(Canvas,X2,Y2,Angle,LW);
 end;
 
-function FindLetter(letter:char):integer;
+function FindLetter(letter:String):integer;
 var i,j:integer;
 begin
    for i := 1 to Form1.StringGrid1.RowCount-1 do
@@ -171,12 +184,12 @@ begin                                  //ind -> stack; n -> -//-
      Form1.Canvas.Pen.Color:=clGreen;
      Form1.Canvas.Pen.Width:=2;
      Form1.Canvas.Brush.Color:=clGreen;
-     sleep(1800);
+     pause(2);
      DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
      pushMas(mas,ind,'0');
      Form1.Edit50.Text:=Form1.Edit50.Text+'0';
      Form1.Edit50.Repaint;
-     //sleep(1800);
+     //pause(2);
      FindCodes(pt^.left,mas,code,ind,n);
    end;
    if pt^.right<>nil then
@@ -188,15 +201,15 @@ begin                                  //ind -> stack; n -> -//-
      Form1.Canvas.Pen.Color:=clGreen;
      Form1.Canvas.Pen.Width:=2;
      Form1.Canvas.Brush.Color:=clGreen;
-     sleep(1800);
+     pause(2);
      DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
      pushMas(mas,ind,'1');
      Form1.Edit50.Text:=Form1.Edit50.Text+'1';
      Form1.Edit50.Repaint;
-     //sleep(1800);
+     //pause(2);
      FindCodes(pt^.right,mas,code,ind,n);
    end;
-   if pt^.letter<>'' then
+   if length(pt^.letter)=1 then//pt^.letter<>'' then
    begin
       if length(code)=0 then
         SetLength(code,3);
@@ -205,6 +218,7 @@ begin                                  //ind -> stack; n -> -//-
         code[n].letter:=pt.letter;
         Form1.Edit51.Text:=code[n].letter;
         Form1.Edit51.Repaint;
+        pause(1);
         for i := 0 to ind-1 do
           code[n].code:=code[n].code+mas[i];
         Form1.StringGrid1.Cells[2,FindLetter(code[n].letter)]:=code[n].code;
@@ -218,6 +232,7 @@ begin                                  //ind -> stack; n -> -//-
           code[n].letter:=pt.letter;
           Form1.Edit51.Text:=code[n].letter;
           Form1.Edit51.Repaint;
+          pause(1);
           for i := 0 to ind-1 do
             code[n].code:=code[n].code+mas[i];
           Form1.StringGrid1.Cells[2,FindLetter(code[n].letter)]:=code[n].code;
@@ -230,6 +245,7 @@ begin                                  //ind -> stack; n -> -//-
    text:=Form1.Edit50.Text;
    SetLength(text,length(text)-1);
    Form1.Edit50.Text:=text;
+   Form1.Edit51.Text:='';
 end;
 
 procedure CreateEdits(offset,n: integer);
@@ -296,14 +312,41 @@ begin
    end;
 end;
 
+procedure tableFreq(huff:Tah;size:integer);
+var i,j:integer;
+begin
+   Form1.StringGrid2.RowCount:=size+2;
+   for i := 0 to size do
+   begin
+      Form1.StringGrid2.Cells[0,i+1]:=huff[i].letter;
+      Form1.StringGrid2.Cells[1,i+1]:=IntToStr(huff[i].freq);
+   end;
+end;
+
+procedure SortingGrid(grid:TStringGrid; size:integer);
+var i,j:integer; symb:String; freq:integer;
+begin
+   for i := size downto 1 do
+        for j := 1 to i do
+            if StrToInt(grid.Cells[1,j])<StrToInt(grid.Cells[1,j+1]) then
+            begin
+                symb:=grid.Cells[0,j];
+                freq:=StrToInt(grid.Cells[1,j]);
+                grid.Cells[1,j]:=grid.Cells[1,j+1];
+                grid.Cells[0,j]:=grid.Cells[0,j+1];
+                grid.Cells[1,j+1]:=IntToStr(freq);
+                grid.Cells[0,j+1]:=symb;
+            end;
+end;
+
 procedure TForm1.Button1Click(Sender: TObject);
 var text:String; ind,i,j,stackind,ncode,symbols:integer; pt:pnode; tmp:char;
 begin
   text:=Edit1.text;
   UnitHuff.GenarateFreq(huff,text,ind);
-  if length(huff)>17 then
+  if length(huff)>20 then
   begin
-    Memo1.Lines.Add('ВНИМАНИЕ: Ваш текст содержил больше 17 различных символов. Повторите попытку еще.');
+    Memo1.Lines.Add('ВНИМАНИЕ: Ваш текст содержил больше 20 различных символов. Повторите попытку еще.');
     Edit1.text:='';
     exit;
   end;
@@ -319,6 +362,7 @@ begin
   size:=length(huff)-1;
   Form1.Button1.Enabled:=false;
   Form1.Button2.Enabled:=true;
+  Form1.Edit1.ReadOnly:=true;
 end;
 
 procedure Huffman2(var huff:Tah; var size:integer);
@@ -332,6 +376,8 @@ begin
         offset:=i+2;
      end;
      size:=length(huff)-1;
+     SortingGrid(Form1.StringGrid1,size);
+     tableFreq(huff,size);
      DescriptionOfActions('m');
      flag:=true;
      exit;
@@ -339,6 +385,7 @@ begin
   if (size<>0) and (sorted=false) then
   begin
      BubleSorting(huff,size);
+     SortingGrid(Form1.StringGrid2,size);
      DescriptionOfActions('s');
      setChanges(size);
      sorted:=true;
@@ -361,15 +408,19 @@ begin
      Form1.Memo1.Lines.Add('- Берем последние 2 элемента (узла) из массива и объединяем их в один узел. ');
      Form1.Memo1.Lines.Add('  Сложим их частоты. Получилось '+IntToStr(huff[size-1].freq+huff[size].freq));
      Form1.Memo1.Lines.Add(' ');
-     p^.edit.Text:=IntToStr(huff[size-1]^.freq+huff[size]^.freq);
+     //p^.edit.Text:=IntToStr(huff[size-1]^.freq+huff[size]^.freq);
      //p^.edit.text := IntToStr(huff[size-1]^.freq+huff[size]^.freq);
-     //p^.edit.text := huff[size-1]^.edit.text+huff[size]^.edit.text;
+     p^.edit.text := huff[size-1]^.edit.text+huff[size]^.edit.text;
+     p^.letter:=huff[size-1]^.letter+huff[size]^.letter;
      p^.freq:=huff[size-1]^.freq+huff[size]^.freq;
      p^.left:=huff[size-1];
      p^.right:=huff[size];
      dec(size);
      inc(offset);
      huff[size]:=p;
+     tableFreq(huff,size);
+     //SortingGrid(Form1.StringGrid2,size);
+     huff[size].edit.Text:='';
      if size=0 then
      begin
         DescriptionOfActions('t');
@@ -377,7 +428,6 @@ begin
         Form1.Memo1.Lines.Add('Загоревшаяся зеленым цветом стрелка показывает продвижение по дереву.');
         Form1.Memo1.Lines.Add('Слева синхронизировано с прохождением по дереву показано добавление 0 или 1.');
         Form1.Memo1.Lines.Add(' ');
-        huff[0].edit.text:='['+IntToStr(huff[0]^.freq)+']';
      end;
      setChanges(size);
      sorted:=false;
@@ -385,12 +435,19 @@ begin
   else
   begin
      setChanges(size);
+     Form1.Button2.Enabled:=false;
+     Form1.Button3.Enabled:=false;
      stackind:=0;   //stack index
      ncode:=0;      //codes index
      pt:=huff[0];
+     Form1.Canvas.Pen.Color:=clBlack;
+     Form1.Canvas.Pen.Width:=2;
+     Form1.Canvas.Brush.Color:=clBlack;
      DrawArrow(Form1.Canvas,143,380,159,380,2);
      FindCodes(pt,mas,code,stackind,ncode);
      sleep(500);
+     Form1.Button2.Enabled:=true;
+     Form1.Button3.Enabled:=true;
      Form1.Edit51.Text:='';
      for i := 0 to ncode-1 do
      begin
@@ -406,7 +463,8 @@ begin
      Form1.Memo1.Lines.Add(' ');
      Form1.Memo1.Lines.Add('Поздравляю! Код Хаффмана создан. Все данные можете увидеть в таблице.');
      Form1.Button2.Default:=false;
-     Form1.Edit1.SetFocus;
+     //Form1.Edit1.SetFocus;
+     Form1.StringGrid1.SetFocus;
      Form1.Button2.Enabled:=false;
      finished:=true;
   end;
@@ -438,6 +496,7 @@ begin
   Form1.Canvas.Brush.Color := clBtnFace;
   Form1.Canvas.FillRect(Form1.Canvas.ClipRect);
   Edit1.Text:='';
+  Form1.Edit1.ReadOnly:=false;
   Edit50.Text:='';
   Edit51.Text:='';
   Form1.Button1.Enabled:=true;
@@ -451,6 +510,8 @@ begin
     Form1.StringGrid1.Cells[1,i]:='';
     Form1.StringGrid1.Cells[2,i]:='';
   end;
+  StringGrid2.Cells[0,1]:='';
+  StringGrid2.Cells[1,1]:='';
 end;
 
 procedure TForm1.fNewClick(Sender: TObject);
@@ -465,6 +526,7 @@ begin
                 Form1.Canvas.Brush.Color := clBtnFace;
                 Form1.Canvas.FillRect(Form1.Canvas.ClipRect);
                 Edit1.Text:='';
+                Form1.Edit1.ReadOnly:=false;
                 Edit50.Text:='';
                 Edit51.Text:='';
                 Form1.Button1.Enabled:=true;
@@ -478,6 +540,8 @@ begin
                   Form1.StringGrid1.Cells[1,i]:='';
                   Form1.StringGrid1.Cells[2,i]:='';
                 end;
+                StringGrid2.Cells[0,1]:='';
+                StringGrid2.Cells[1,1]:='';
               end;
       id_no: exit;
     end;
@@ -497,8 +561,13 @@ end;
 procedure TForm1.FormCreate(Sender: TObject);
 begin
   StringGrid1.ColCount:=3;
+  StringGrid2.ColCount:=2;
+  StringGrid1.RowCount:=1;
+  StringGrid2.RowCount:=1;
   StringGrid1.Cells[0,0]:='Символ';
+  StringGrid2.Cells[0,0]:='Символ';
   StringGrid1.Cells[1,0]:='Частота';
+  StringGrid2.Cells[1,0]:='Частота';
   StringGrid1.Cells[2,0]:='Код Хаффмана';
   StringGrid1.ColWidths[2]:=Canvas.TextWidth(StringGrid1.Cells[2,0])+25;
   StringGrid1.ColWidths[1]:=Canvas.TextWidth(StringGrid1.Cells[1,0])+10;
