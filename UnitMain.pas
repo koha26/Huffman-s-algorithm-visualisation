@@ -5,7 +5,7 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, UnitHuff, Vcl.Menus, Math,
-  Vcl.ExtCtrls, Vcl.Mask, WinHelpViewer;
+  Vcl.ExtCtrls, Vcl.Mask, WinHelpViewer, ShellApi;
 const
   HELP_TAB = 15;
 type
@@ -186,7 +186,7 @@ begin                                  //ind -> stack; n -> -//-
      Form1.Canvas.Pen.Color:=clGreen;
      Form1.Canvas.Pen.Width:=2;
      Form1.Canvas.Brush.Color:=clGreen;
-     pause(2);
+     pause(1);
      DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
      pushMas(mas,ind,'0');
      Form1.Edit50.Text:=Form1.Edit50.Text+'0';
@@ -203,7 +203,7 @@ begin                                  //ind -> stack; n -> -//-
      Form1.Canvas.Pen.Color:=clGreen;
      Form1.Canvas.Pen.Width:=2;
      Form1.Canvas.Brush.Color:=clGreen;
-     pause(2);
+     pause(1);
      DrawArrow(Form1.Canvas,left_x1,top_y1,left_x2,top_y2,2);
      pushMas(mas,ind,'1');
      Form1.Edit50.Text:=Form1.Edit50.Text+'1';
@@ -255,10 +255,10 @@ var edit: tedit;
 begin
   edit:= TEdit.Create(form1);
   edit.Parent := Form1;
-  edit.Left:=250+(460 div n)*(offset-2);
+  edit.Left:=232+(493 div n)*(offset-2);
   edit.Top := 45;
   edit.Visible := true;
-  edit.Width := 460 div n;
+  edit.Width := 493 div n;  //460   //240
   edit.Name := 'Edit'+inttostr(offset);
   edit.text := huff[offset-2].letter;
   edit.ReadOnly:=true;
@@ -308,8 +308,8 @@ begin
    Form1.Canvas.FillRect(Form1.Canvas.ClipRect);
    for i:=0 to n do
    begin
-     huff[i]^.edit.Left:=250+(460 div (n+1))*i;
-     huff[i]^.edit.Width := 460 div (n+1);
+     huff[i]^.edit.Left:=232+(493 div (n+1))*i;
+     huff[i]^.edit.Width := 493 div (n+1);
      treeChange(huff[i],huff[i]);
    end;
 end;
@@ -363,12 +363,15 @@ begin
     Form1.StringGrid1.SetFocus;
     Form1.Button2.Enabled:=false;
     Form1.Button1.Enabled:=false;
+    SetLength(code,1);
+    code[0].letter:=huff[0].letter;
+    code[0].code:='1';
     finished:=true;
     exit;
   end;
-  if length(huff)>20 then
+  if length(huff)>19 then
   begin
-    Memo1.Lines.Add('ВНИМАНИЕ: Ваш текст содержил больше 20 различных символов. Повторите попытку еще.');
+    Memo1.Lines.Add('ВНИМАНИЕ: Ваш текст содержил больше 19 различных символов. Повторите попытку еще.');
     Edit1.text:='';
     exit;
   end;
@@ -388,7 +391,7 @@ begin
 end;
 
 procedure Huffman2(var huff:Tah; var size:integer);
-var tmp,p:pnode; i,j:integer; edit: tedit; stackind,ncode:integer; pt:pnode; text:String;
+var tmp,p:pnode; i,j,buttonSelected:integer; edit: tedit; stackind,ncode:integer; pt:pnode; text:String;
 begin
   if (size=length(huff)-1) and (flag=false)then
   begin
@@ -466,6 +469,7 @@ begin
      Form1.Canvas.Pen.Width:=2;
      Form1.Canvas.Brush.Color:=clBlack;
      DrawArrow(Form1.Canvas,143,380,159,380,2);
+     buttonSelected := MessageBox(Form1.Handle,'Сейчас будет показана анимация обхода дерева для получения кодов. Пожалуйста, сохраняйте спокойствие и наблюдайте.','Подождите...',MB_OK+MB_ICONINFORMATION);
      FindCodes(pt,mas,code,stackind,ncode);
      sleep(500);
      Form1.Button2.Enabled:=true;
@@ -581,6 +585,7 @@ begin
 end;
 
 procedure TForm1.FormCreate(Sender: TObject);
+var HelpDir:String;
 begin
   StringGrid1.ColCount:=3;
   StringGrid2.ColCount:=2;
@@ -597,7 +602,10 @@ begin
   StringGrid1.Width:=StringGrid1.ColWidths[0]+StringGrid1.ColWidths[1]+StringGrid1.ColWidths[2]+8;
   Memo1.ReadOnly:=true;
   Form1.Button2.Enabled:=false;
-  Application.HelpFile := ExtractFilePath(Application.ExeName) + Application.HelpFile;
+  Form1.N8Click(self);
+  //Application.HelpFile := ExtractFilePath(Application.ExeName) + Application.HelpFile;
+  //HelpDir:= GetCurrentDir+'\help\Help.chm';
+  //ShellExecute(Application.MainForm.Handle,nil,PChar(HelpDir),nil,nil,SW_SHOW);
 end;
 
 procedure Save;
@@ -628,9 +636,10 @@ begin
 end;
 
 procedure TForm1.N8Click(Sender: TObject);
+var HelpDir:string;
 begin
-  //Application.HelpCommand(HELP_FINDER, 0);
-  Application.HelpCommand(HELP_CONTENTS, 0);
+  HelpDir:= GetCurrentDir+'\help\MainHelp.chm';
+  ShellExecute(Form1.Handle,nil,PChar(HelpDir),nil,nil,SW_SHOW);
 end;
 
 end.
