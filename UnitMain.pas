@@ -5,8 +5,9 @@ interface
 uses
   Winapi.Windows, Winapi.Messages, System.SysUtils, System.Variants, System.Classes, Vcl.Graphics,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs, Vcl.StdCtrls, Vcl.Grids, UnitHuff, Vcl.Menus, Math,
-  Vcl.ExtCtrls, Vcl.Mask;
-
+  Vcl.ExtCtrls, Vcl.Mask, WinHelpViewer;
+const
+  HELP_TAB = 15;
 type
   TForm1 = class(TForm)
     Edit1: TEdit;
@@ -41,6 +42,7 @@ type
     procedure Button3Click(Sender: TObject);
     procedure fNewClick(Sender: TObject);
     procedure N6Click(Sender: TObject);
+    procedure N8Click(Sender: TObject);
   private
     { Private declarations }
   public
@@ -343,7 +345,27 @@ procedure TForm1.Button1Click(Sender: TObject);
 var text:String; ind,i,j,stackind,ncode,symbols:integer; pt:pnode; tmp:char;
 begin
   text:=Edit1.text;
+  if length(text)=0 then
+    exit;
   UnitHuff.GenarateFreq(huff,text,ind);
+  if length(huff)=1 then
+  begin
+    Memo1.Lines.Add('Зачем это делать? О.о');
+    Form1.Memo1.Lines.Add(' ');
+    Form1.Memo1.Lines.Add('- Cимволу "'+huff[0].letter+'" соотвествует код 1');
+    StringGrid1.RowCount:=length(huff)+1;
+    StringGrid1.Cells[0,1]:=huff[0].letter;
+    StringGrid1.Cells[1,1]:=IntToStr(huff[0].freq);
+    StringGrid1.Cells[2,1]:='1';
+    Form1.Memo1.Lines.Add(' ');
+    Form1.Memo1.Lines.Add('Поздравляю! Код Хаффмана создан. Все данные можете увидеть в таблице.');
+    Form1.Button2.Default:=false;
+    Form1.StringGrid1.SetFocus;
+    Form1.Button2.Enabled:=false;
+    Form1.Button1.Enabled:=false;
+    finished:=true;
+    exit;
+  end;
   if length(huff)>20 then
   begin
     Memo1.Lines.Add('ВНИМАНИЕ: Ваш текст содержил больше 20 различных символов. Повторите попытку еще.');
@@ -575,6 +597,7 @@ begin
   StringGrid1.Width:=StringGrid1.ColWidths[0]+StringGrid1.ColWidths[1]+StringGrid1.ColWidths[2]+8;
   Memo1.ReadOnly:=true;
   Form1.Button2.Enabled:=false;
+  Application.HelpFile := ExtractFilePath(Application.ExeName) + Application.HelpFile;
 end;
 
 procedure Save;
@@ -602,6 +625,12 @@ end;
 procedure TForm1.N6Click(Sender: TObject);
 begin
     Form1.Close;
+end;
+
+procedure TForm1.N8Click(Sender: TObject);
+begin
+  //Application.HelpCommand(HELP_FINDER, 0);
+  Application.HelpCommand(HELP_CONTENTS, 0);
 end;
 
 end.
